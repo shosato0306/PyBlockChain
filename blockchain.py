@@ -1,8 +1,10 @@
+import contextlib
 import hashlib
 import json
 import logging
 import sys
 import time
+import threading
 
 from ecdsa import NIST256p
 from ecdsa import VerifyingKey
@@ -12,6 +14,7 @@ import utils
 MINING_DIFFICULTY = 3
 MINING_SENDER = 'THE BLOCKCHAIN'
 MINING_REWARD = 1.0
+MINING_TIMER_SEC = 20
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
@@ -24,6 +27,7 @@ class BlockChain(object):
         self.create_block(0, self.hash({}))
         self.blockchain_address = blockchain_address
         self.port = port
+        self.mining_semaphore = threading.Semaphore(1)
 
     def create_block(self, nonce, previous_hash):
         block = utils.sorted_dict_by_key({
@@ -107,6 +111,9 @@ class BlockChain(object):
         return verified_key
 
     def mining(self):
+        if not self.transaction_pool:
+            return False
+            
         self.add_transaction(
             sender_blockchain_address=MINING_SENDER,
             recipient_blockchain_address=self.blockchain_address,
@@ -117,6 +124,15 @@ class BlockChain(object):
         self.create_block(nonce, previous_hash)
         logger.info({'action': 'mining', 'status': 'success'})
         return True
+
+    def start_mining(self):
+        is_acquire = self.mining_semaphore.acquire(blocking=False)
+        if is_acquire:
+            with contextlib.ExitStack() as stack:
+                stack.callback(self.mining_semaphore.release)
+                self.mining()
+                loop = threading.Timer(MINING_TIMER_SEC, self.start_mining)
+                loop.start()
 
     def calculate_total_amount(self, blockchain_address):
         total_amount = 0.0

@@ -78,6 +78,12 @@ def mine():
         return jsonify({"message": "success"}), 200
     return jsonify({"message": "fail"}), 400
 
+@app.route("/mine/start", methods=["GET"])
+def start_mine():
+    get_blockchain().start_mining()
+    return jsonify({"message": "success"}), 200
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
@@ -87,5 +93,6 @@ if __name__ == '__main__':
     port = args.port
 
     app.config['port'] = port
+
 
     app.run(host='0.0.0.0', port=port, threaded=True, debug=True)
