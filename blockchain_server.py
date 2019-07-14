@@ -70,6 +70,14 @@ def get_chain():
     }
     return jsonify(response), 200
 
+@app.route("/mine", methods=["GET"])
+def mine():
+    block_chain = get_blockchain()
+    is_mined = block_chain.mining()
+    if is_mined:
+        return jsonify({"message": "success"}), 200
+    return jsonify({"message": "fail"}), 400
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
